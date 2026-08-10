@@ -15,9 +15,15 @@ async function loadNCERT(){
  $("classes").innerHTML=(data||[]).map(x=>`<div class="card"><h3>Class ${x.class_number}</h3><p>${esc(x.title||"NCERT")}</p><button onclick="openLink('${escAttr(x.official_url||"")}')">Open</button></div>`).join("");
 }
 async function hasPurchase(videoId){
- if(!currentUser)return false;
- const {data}=await sb.from("purchases").select("id").eq("user_id",currentUser.id).eq("video_id",videoId).eq("status","approved").limit(1);
- return !!data?.length;
+  if(!currentUser) return false;
+
+  const {data,error}=await sb
+    .from("profiles")
+    .select("video_access")
+    .eq("id",currentUser.id)
+    .single();
+
+  return !error && data?.video_access === true;
 }
 async function loadVideos(){
  const {data,error}=await sb.from("videos").select("id,title,description,price").eq("active",true).order("created_at",{ascending:false});
