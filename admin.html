@@ -77,6 +77,48 @@ async function restrictCustomer(id,hasAccess){
 }
 async function toggleVideo(id,active){await sb.from("videos").update({active:!active}).eq("id",id);loadVideos();}
 async function loadPayments(){const {data}=await sb.from("purchases").select("*").eq("status","pending").order("created_at",{ascending:false});$("payments").innerHTML=(data||[]).map(p=>`<div class="card"><p>₹${p.amount}</p><p>UTR: <b>${p.payment_ref}</b></p><p>User: ${p.user_id}</p><button onclick="decide(${p.id},'approved')">Approve ✅</button><button onclick="decide(${p.id},'rejected')">Reject ❌</button></div>`).join("")||"<p>No pending payments.</p>"}
-async function decide(id,status){const {error}=await sb.from("purchases").update({status}).eq("id",id);alert(error?error.message:"Updated");loadPayments()}
+async function decide(id,status){
+  const {data: purchase,error: purchaseError} = await sb
+    .from("purchases")
+    .select("user_id")
+    .eq("id",id)
+    .single();
+
+  if(purchaseError){
+    alert(purchaseError.message);
+    return;
+  }
+
+  const {error} = await sb
+    .from("purchases")
+    .update({status})
+    .eq("id",id);
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  if(status === "approved"){
+    const {error: accessError} = await sb
+      .from("profiles")
+      .update({video_access:true})
+      .eq("id",purchase.user_id);
+
+    if(accessError){
+      alert(accessError.message);
+      return;
+    }
+  }
+
+  alert(
+    status === "approved"
+      ? "Payment approved. Customer ko permanent video access mil gaya ✅"
+      : "Payment rejected ❌"
+  );
+
+  loadPayments();
+  loadCustomers();
+}
 window.login=login;window.uploadVideo=uploadVideo;window.toggleVideo=toggleVideo;window.decide=decide;
 </script></body></html>
