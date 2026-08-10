@@ -16,7 +16,35 @@
 <script>
 const sb=window.supabase.createClient(STUDY_MATERIAL_SUPABASE.url,STUDY_MATERIAL_SUPABASE.publishableKey);let user=null;
 const $=id=>document.getElementById(id);
-async function login(){const {data,error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});if(error){$("msg").textContent=error.message;return;}const {data:p}=await sb.from("profiles").select("role").eq("id",data.user.id).single();if(p?.role!=="admin"){await sb.auth.signOut();$("msg").textContent="Not an admin.";return;}user=data.user;$("dash").classList.remove("hidden");$("msg").textContent="Admin logged in.";loadPayments();loadVideos();loadCustomers();}
+async function login(){
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+
+  if(error){
+    document.getElementById("msg").textContent=error.message;
+    return;
+  }
+
+  const {data:profile,error:profileError}=await sb
+    .from("profiles")
+    .select("role")
+    .eq("id",data.user.id)
+    .single();
+
+  if(profileError || !profile || profile.role!=="admin"){
+    document.getElementById("msg").textContent="Not an admin.";
+    await sb.auth.signOut();
+    return;
+  }
+
+  document.getElementById("dash").classList.remove("hidden");
+  document.getElementById("msg").textContent="Admin logged in.";
+  loadPayments();
+  loadVideos();
+  loadCustomers();
+}
 async function uploadVideo(){
  const f=$("videoFile").files[0]; if(!f){$("uploadMsg").textContent="Choose an MP4 first.";return;}
  const title=$("vtitle").value.trim();const price=Number($("vprice").value||0);const desc=$("vdesc").value.trim();if(!title){$("uploadMsg").textContent="Enter a title.";return;}
