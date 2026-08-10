@@ -1,12 +1,32 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Study Material Admin</title><link rel="stylesheet" href="styles.css"></head>
-<body><header><h1>🛠 Study Material Admin</h1></header>
-<main>
-<section class="hero"><h2>Admin Dashboard</h2><p>Demo dashboard. Connect Supabase and add server-side authentication before using it publicly.</p></section>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Study Material Admin</title><link rel="stylesheet" href="styles.css"></head>
+<body><header><h1>🛠 Study Material Admin</h1></header><main>
+<section class="hero"><h2>Admin Login</h2><input id="email" type="email" placeholder="Admin email"><input id="password" type="password" placeholder="Password"><button onclick="login()">Login</button><p id="msg"></p></section>
+<section id="dash" class="hidden">
 <div class="grid">
-<div class="card"><h3>➕ Add Product</h3><input placeholder="Product title"><input placeholder="Price"><input placeholder="Access link"><button>Add</button></div>
-<div class="card"><h3>🎥 Add Video</h3><input placeholder="Video title"><input placeholder="Price"><input placeholder="Video URL"><button>Add</button></div>
-<div class="card"><h3>👥 Users</h3><p>Registered users will appear here after database connection.</p></div>
-<div class="card"><h3>💰 Payments</h3><p>Approve/reject payment requests after verification.</p></div>
+<div class="card"><h3>🎥 Add Video</h3><input id="vtitle" placeholder="Video title"><input id="vdesc" placeholder="Description"><input id="vprice" type="number" placeholder="Price"><input id="videoFile" type="file" accept="video/mp4,video/webm,video/quicktime"><button onclick="uploadVideo()">Upload & Add Video</button><p id="uploadMsg"></p></div>
+<div class="card"><h3>💳 Pending payments</h3><div id="payments"></div></div>
 </div>
-</main></body></html>
+<h2>Current Videos</h2><div id="videos" class="grid"></div>
+</section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
+<script>
+const sb=window.supabase.createClient(STUDY_MATERIAL_SUPABASE.url,STUDY_MATERIAL_SUPABASE.publishableKey);let user=null;
+const $=id=>document.getElementById(id);
+async function login(){const {data,error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});if(error){$("msg").textContent=error.message;return;}const {data:p}=await sb.from("profiles").select("role").eq("id",data.user.id).single();if(p?.role!=="admin"){await sb.auth.signOut();$("msg").textContent="Not an admin.";return;}user=data.user;$("dash").classList.remove("hidden");$("msg").textContent="Admin logged in.";loadPayments();loadVideos();}
+async function uploadVideo(){
+ const f=$("videoFile").files[0]; if(!f){$("uploadMsg").textContent="Choose an MP4 first.";return;}
+ const title=$("vtitle").value.trim();const price=Number($("vprice").value||0);const desc=$("vdesc").value.trim();if(!title){$("uploadMsg").textContent="Enter a title.";return;}
+ const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,"_");const path=`${user.id}/${Date.now()}_${safe}`;
+ $("uploadMsg").textContent="Uploading video...";
+ const up=await sb.storage.from("videos").upload(path,f,{contentType:f.type||"video/mp4",upsert:false});
+ if(up.error){$("uploadMsg").textContent=up.error.message;return;}
+ const ins=await sb.from("videos").insert({title,description:desc,price,storage_path:path}).select().single();
+ if(ins.error){await sb.storage.from("videos").remove([path]);$("uploadMsg").textContent=ins.error.message;return;}
+ $("uploadMsg").textContent="Video uploaded and added.";loadVideos();
+}
+async function loadVideos(){const {data}=await sb.from("videos").select("*").order("created_at",{ascending:false});$("videos").innerHTML=(data||[]).map(v=>`<div class="card"><h3>${v.title}</h3><p>₹${v.price}</p><p>${v.storage_path||""}</p><button onclick="toggleVideo(${v.id},${v.active})">${v.active?"Hide":"Show"}</button></div>`).join("")}
+async function toggleVideo(id,active){await sb.from("videos").update({active:!active}).eq("id",id);loadVideos();}
+async function loadPayments(){const {data}=await sb.from("purchases").select("*").eq("status","pending").order("created_at",{ascending:false});$("payments").innerHTML=(data||[]).map(p=>`<div class="card"><p>₹${p.amount}</p><p>UTR: <b>${p.payment_ref}</b></p><p>User: ${p.user_id}</p><button onclick="decide(${p.id},'approved')">Approve ✅</button><button onclick="decide(${p.id},'rejected')">Reject ❌</button></div>`).join("")||"<p>No pending payments.</p>"}
+async function decide(id,status){const {error}=await sb.from("purchases").update({status}).eq("id",id);alert(error?error.message:"Updated");loadPayments()}
+window.login=login;window.uploadVideo=uploadVideo;window.toggleVideo=toggleVideo;window.decide=decide;
+</script></body></html>

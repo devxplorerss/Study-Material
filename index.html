@@ -1,24 +1,41 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Study Material</title>
-<link rel="stylesheet" href="styles.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Study Material</title><link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header><h1>📚 Study Material</h1><nav>
-<a href="#home">Home</a><a href="#ncert">NCERT</a><a href="#videos">Videos</a><a href="#products">Products</a><a href="#account">Account</a>
-</nav></header>
+<header><h1>📚 Study Material</h1>
+<nav><a href="#home">Home</a><a href="#ncert">NCERT</a><a href="#videos">Videos</a><a href="#products">Products</a><a href="#account">Account</a></nav>
+</header>
 <main>
 <section id="home" class="hero"><h2>Learn smarter.</h2><p>NCERT books, videos and study products in one place.</p></section>
 <section id="ncert"><h2>📖 NCERT Classes 1–12</h2><div id="classes" class="grid"></div></section>
 <section id="videos"><h2>🎥 Videos</h2><div class="fun">Mutthi maarne ke liye paise lagenge 😜</div><div id="videoList" class="grid"></div></section>
 <section id="products"><h2>🛒 Products</h2><div id="productList" class="grid"></div></section>
-<section id="account"><h2>👤 Account</h2><form id="authForm"><input id="name" placeholder="Name" required><input id="email" type="email" placeholder="Email" required><button>Sign in</button></form><p id="accountMsg"></p></section>
+<section id="account"><h2>👤 Account</h2>
+<form id="authForm">
+<input id="name" placeholder="Name (for signup)">
+<input id="email" type="email" placeholder="Email" required>
+<input id="password" type="password" placeholder="Password (min 6 chars)" required>
+<button>Sign in / Sign up</button>
+</form><p id="accountMsg"></p></section>
 </main>
-<footer>UPI: Q655416785@ybl</footer>
-<script src="supabase-config.js"></script>
-<script src="app.js"></script>
-</body>
-</html>
+<footer>UPI: <span id="upiText">Q655416785@ybl</span> <button id="copyUpi">📋 Copy</button></footer>
+
+<div id="payModal" class="modal hidden"><div class="modalbox">
+<button class="close" onclick="closePay()">×</button><h2>Payment</h2>
+<p>Pay to:</p><div class="upiBox"><b id="modalUpi">Q655416785@ybl</b><button onclick="copyUPI()">📋 Copy</button></div>
+<p id="payItem"></p><input id="paymentRef" placeholder="UTR / Reference number">
+<button onclick="submitPayment()">Submit payment request</button><p id="payMsg"></p>
+</div></div>
+
+<div id="videoModal" class="modal hidden"><div class="modalbox videoBox">
+<button class="close" onclick="closeVideo()">×</button><h2 id="videoTitle">Video</h2>
+<video id="player" controls playsinline controlsList="nodownload" style="width:100%;border-radius:12px"></video>
+<p>Access is linked to your approved purchase. You can watch again while your access remains approved.</p>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script><script src="app.js"></script>
+</body></html>
