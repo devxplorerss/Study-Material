@@ -21,6 +21,7 @@ async function login(){
   const password=document.getElementById("password").value;
 
   const {data,error}=await sb.auth.signInWithPassword({email,password});
+ user = data.user;
 
   if(error){
     document.getElementById("msg").textContent=error.message;
