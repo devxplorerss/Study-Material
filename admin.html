@@ -6,13 +6,17 @@
 <div class="card"><h3>🎥 Add Video</h3><input id="vtitle" placeholder="Video title"><input id="vdesc" placeholder="Description"><input id="vprice" type="number" placeholder="Price"><input id="videoFile" type="file" accept="video/mp4,video/webm,video/quicktime"><button onclick="uploadVideo()">Upload & Add Video</button><p id="uploadMsg"></p></div>
 <div class="card"><h3>💳 Pending payments</h3><div id="payments"></div></div>
 </div>
+ <h2>Customer Access</h2>
+<div id="customers" class="grid">
+  Loading customers...
+</div>
 <h2>Current Videos</h2><div id="videos" class="grid"></div>
 </section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
 <script>
 const sb=window.supabase.createClient(STUDY_MATERIAL_SUPABASE.url,STUDY_MATERIAL_SUPABASE.publishableKey);let user=null;
 const $=id=>document.getElementById(id);
-async function login(){const {data,error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});if(error){$("msg").textContent=error.message;return;}const {data:p}=await sb.from("profiles").select("role").eq("id",data.user.id).single();if(p?.role!=="admin"){await sb.auth.signOut();$("msg").textContent="Not an admin.";return;}user=data.user;$("dash").classList.remove("hidden");$("msg").textContent="Admin logged in.";loadPayments();loadVideos();}
+async function login(){const {data,error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});if(error){$("msg").textContent=error.message;return;}const {data:p}=await sb.from("profiles").select("role").eq("id",data.user.id).single();if(p?.role!=="admin"){await sb.auth.signOut();$("msg").textContent="Not an admin.";return;}user=data.user;$("dash").classList.remove("hidden");$("msg").textContent="Admin logged in.";loadPayments();loadVideos();loadCustomers();}
 async function uploadVideo(){
  const f=$("videoFile").files[0]; if(!f){$("uploadMsg").textContent="Choose an MP4 first.";return;}
  const title=$("vtitle").value.trim();const price=Number($("vprice").value||0);const desc=$("vdesc").value.trim();if(!title){$("uploadMsg").textContent="Enter a title.";return;}
@@ -25,6 +29,52 @@ async function uploadVideo(){
  $("uploadMsg").textContent="Video uploaded and added.";loadVideos();
 }
 async function loadVideos(){const {data}=await sb.from("videos").select("*").order("created_at",{ascending:false});$("videos").innerHTML=(data||[]).map(v=>`<div class="card"><h3>${v.title}</h3><p>₹${v.price}</p><p>${v.storage_path||""}</p><button onclick="toggleVideo(${v.id},${v.active})">${v.active?"Hide":"Show"}</button></div>`).join("")}
+ async function loadCustomers(){
+  const {data,error}=await sb
+    .from("profiles")
+    .select("id,email,name,video_access");
+
+  if(error){
+    document.getElementById("customers").innerHTML =
+      "Customers load nahi ho rahe.";
+    return;
+  }
+
+  document.getElementById("customers").innerHTML =
+    (data || []).map(u => `
+      <div class="card">
+        <h3>${esc(u.name || u.email || "Customer")}</h3>
+        <p>${u.email || ""}</p>
+        <p>
+          Access:
+          <b>${u.video_access ? "ACTIVE ✅" : "RESTRICTED ❌"}</b>
+        </p>
+        <button onclick="restrictCustomer('${u.id}', ${u.video_access})">
+          ${u.video_access ? "Restrict" : "Give Access"}
+        </button>
+      </div>
+    `).join("");
+}
+
+async function restrictCustomer(id,hasAccess){
+  const {error}=await sb
+    .from("profiles")
+    .update({video_access: !hasAccess})
+    .eq("id",id);
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  if(hasAccess){
+    alert("Chal lawde, paise nikaal 😄💸");
+  }else{
+    alert("Access restored 😎");
+  }
+
+  loadCustomers();
+}
 async function toggleVideo(id,active){await sb.from("videos").update({active:!active}).eq("id",id);loadVideos();}
 async function loadPayments(){const {data}=await sb.from("purchases").select("*").eq("status","pending").order("created_at",{ascending:false});$("payments").innerHTML=(data||[]).map(p=>`<div class="card"><p>₹${p.amount}</p><p>UTR: <b>${p.payment_ref}</b></p><p>User: ${p.user_id}</p><button onclick="decide(${p.id},'approved')">Approve ✅</button><button onclick="decide(${p.id},'rejected')">Reject ❌</button></div>`).join("")||"<p>No pending payments.</p>"}
 async function decide(id,status){const {error}=await sb.from("purchases").update({status}).eq("id",id);alert(error?error.message:"Updated");loadPayments()}
