@@ -50,10 +50,10 @@ async function uploadVideo(){
  const title=$("vtitle").value.trim();const price=Number($("vprice").value||0);const desc=$("vdesc").value.trim();if(!title){$("uploadMsg").textContent="Enter a title.";return;}
  const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,"_");const path=`${user.id}/${Date.now()}_${safe}`;
  $("uploadMsg").textContent="Uploading video...";
- const up=await sb.storage.from("videos").upload(path,f,{contentType:f.type||"video/mp4",upsert:false});
+ const up=await sb.storage.from("Videos").upload(path,f,{contentType:f.type||"video/mp4",upsert:false});
  if(up.error){$("uploadMsg").textContent=up.error.message;return;}
  const ins=await sb.from("videos").insert({title,description:desc,price,storage_path:path}).select().single();
- if(ins.error){await sb.storage.from("videos").remove([path]);$("uploadMsg").textContent=ins.error.message;return;}
+ if(ins.error){await sb.storage.from("Videos").remove([path]);$("uploadMsg").textContent=ins.error.message;return;}
  $("uploadMsg").textContent="Video uploaded and added.";loadVideos();
 }
 async function loadVideos(){const {data}=await sb.from("videos").select("*").order("created_at",{ascending:false});$("videos").innerHTML=(data||[]).map(v=>`<div class="card"><h3>${v.title}</h3><p>₹${v.price}</p><p>${v.storage_path||""}</p><button onclick="toggleVideo(${v.id},${v.active})">${v.active?"Hide":"Show"}</button></div>`).join("")}
